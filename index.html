@@ -6,7 +6,16 @@
 <title>下载站</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:"Segoe UI",Roboto,sans-serif;background:#f7f8fa;color:#333;line-height:1.7;padding-bottom:60px}
+body{
+  font-family:"Segoe UI",Roboto,sans-serif;
+  background:#f7f8fa;
+  color:#333;
+  line-height:1.7;
+  padding-bottom:60px;
+  background-size:cover;
+  background-position:center;
+  background-attachment:fixed;
+}
 .container{max-width:960px;margin:40px auto;padding:0 20px}
 .card{background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);padding:28px;margin-bottom:24px}
 h1,h2,h3{color:#222;margin-bottom:16px;font-weight:600}
@@ -16,11 +25,12 @@ td{padding:14px 16px;border-top:1px solid #f0f0f0}
 a{color:#2e7dff;text-decoration:none;font-weight:500}
 a:hover{text-decoration:underline}
 img{max-width:100%;height:auto;border-radius:8px;margin:10px 0}
+.empty-tip{text-align:center;padding:30px;color:#888}
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="card" id="content"></div>
+  <div id="contentCard" class="card" style="display:none"></div>
   <div class="card">
     <div id="downloadTable"></div>
   </div>
@@ -38,35 +48,75 @@ function mdToHtml(text) {
   text = text.replace(/\*(.*?)\*/g, "<em>$1</em>");
   text = text.replace(/^- (.*)/gm, "<li>$1</li>");
   text = text.replace(/!\[(.*?)\]\((.*?)\)/g, "<img src=\"$2\" alt=\"$1\">");
+  text = text.replace(/\[(.*?)\]\((.*?)\)/g, "<a href=\"$2\" target=\"_blank\">$1</a>");
   text = text.replace(/\n/g, "<br>");
   return text;
 }
 
-fetch(gistMain).then(r=>r.json()).then(data=>{
-  document.getElementById("content").innerHTML = mdToHtml(data.content);
-}).catch(err=>console.error(err));
+async function loadBackground() {
+  try {
+    const r = await fetch(gistMain);
+    const data = await r.json();
+    if (data.background) {
+      document.body.style.backgroundImage = `url(${data.background})`;
+    }
+  } catch (e) {}
+}
 
-fetch(gistDown).then(r=>r.json()).then(data=>{
-  const rows = data.list || [];
-  if(rows.length===0)return;
-  const keys = Object.keys(rows[0]);
-  let html = "<table><thead><tr>";
-  keys.forEach(k=>html+=`<th>${k}</th>`);
-  html+="</tr></thead><tbody>";
-  rows.forEach(row=>{
-    html+="<tr>";
-    keys.forEach(k=>{
-      if(k==="文件名"||k==="名称"||k==="file"){
-        html+=`<td><a href="exe/${row[k]}" target="_blank">${row[k]}</a></td>`;
-      }else{
-        html+=`<td>${row[k]}</td>`;
-      }
+async function loadContent() {
+  try {
+    const r = await fetch(gistMain);
+    const data = await r.json();
+    const content = data.content || "";
+    const card = document.getElementById("contentCard");
+    if (content.trim()) {
+      card.innerHTML = mdToHtml(content);
+      card.style.display = "block";
+    } else {
+      card.style.display = "none";
+    }
+  } catch (e) {
+    document.getElementById("contentCard").style.display = "none";
+  }
+}
+
+async function loadDownloads() {
+  try {
+    const r = await fetch(gistDown);
+    const data = await r.json();
+    const rows = data.list || [];
+    const box = document.getElementById("downloadTable");
+    if (rows.length === 0) {
+      box.innerHTML = '<div class="empty-tip">暂无下载文件</div>';
+      return;
+    }
+    const keys = Object.keys(rows[0]);
+    let html = "<table><thead><tr>";
+    keys.forEach(k => html += `<th>${k}</th>`);
+    html += "</tr></thead><tbody>";
+    rows.forEach(row => {
+      html += "<tr>";
+      keys.forEach(k => {
+        if (k === "文件名" || k === "名称" || k === "file") {
+          html += `<td><a href="exe/${row[k]}" target="_blank">${row[k]}</a></td>`;
+        } else {
+          html += `<td>${row[k]}</td>`;
+        }
+      });
+      html += "</tr>";
     });
-    html+="</tr>";
-  });
-  html+="</tbody></table>";
-  document.getElementById("downloadTable").innerHTML = html;
-}).catch(err=>console.error(err));
+    html += "</tbody></table>";
+    box.innerHTML = html;
+  } catch (e) {
+    document.getElementById("downloadTable").innerHTML = '<div class="empty-tip">加载失败</div>';
+  }
+}
+
+window.onload = () => {
+  loadBackground();
+  loadContent();
+  loadDownloads();
+}
 </script>
 </body>
 </html>
