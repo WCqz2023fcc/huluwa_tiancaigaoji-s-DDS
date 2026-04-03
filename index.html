@@ -73,25 +73,3 @@ window.onload = () => {
 </script>
 </body>
 </html>
-          html += `<td><a href="exe/${row[k]}" target="_blank">${row[k]}</a></td>`;
-        } else {
-          html += `<td>${row[k]}</td>`;
-        }
-      });
-      html += "</tr>";
-    });
-    html += "</tbody></table>";
-    box.innerHTML = html;
-  } catch (e) {
-    document.getElementById("downloadTable").innerHTML = '<div class="empty-tip">加载失败</div>';
-  }
-}
-
-window.onload = () => {
-  loadBackground();
-  loadContent();
-  loadDownloads();
-}
-</script>
-</body>
-</html>
