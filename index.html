@@ -8,13 +8,11 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{
   font-family:"Segoe UI",Roboto,sans-serif;
-  background:#f7f8fa;
+  background:#f7f8fa url("bg.jpg") center center fixed;
+  background-size:cover;
   color:#333;
   line-height:1.7;
   padding-bottom:60px;
-  background-size:cover;
-  background-position:center;
-  background-attachment:fixed;
 }
 .container{max-width:960px;margin:40px auto;padding:0 20px}
 .card{background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);padding:28px;margin-bottom:24px}
@@ -24,61 +22,18 @@ th{background:#f5f7fa;padding:14px 16px;text-align:left;font-weight:600;color:#4
 td{padding:14px 16px;border-top:1px solid #f0f0f0}
 a{color:#2e7dff;text-decoration:none;font-weight:500}
 a:hover{text-decoration:underline}
-img{max-width:100%;height:auto;border-radius:8px;margin:10px 0}
 .empty-tip{text-align:center;padding:30px;color:#888}
 </style>
 </head>
 <body>
 <div class="container">
-  <div id="contentCard" class="card" style="display:none"></div>
   <div class="card">
     <div id="downloadTable"></div>
   </div>
 </div>
 
 <script>
-const gistMain = "https://gist.githubusercontent.com/WCqz2023fcc/1ef4d08e0c9d566cbbed18354b2400a2/raw/main.json";
 const gistDown = "https://gist.githubusercontent.com/WCqz2023fcc/1ef4d08e0c9d566cbbed18354b2400a2/raw/download.json";
-
-function mdToHtml(text) {
-  text = text.replace(/^### (.*$)/gm, "<h3>$1</h3>");
-  text = text.replace(/^## (.*$)/gm, "<h2>$1</h2>");
-  text = text.replace(/^# (.*$)/gm, "<h1>$1</h1>");
-  text = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-  text = text.replace(/\*(.*?)\*/g, "<em>$1</em>");
-  text = text.replace(/^- (.*)/gm, "<li>$1</li>");
-  text = text.replace(/!\[(.*?)\]\((.*?)\)/g, "<img src=\"$2\" alt=\"$1\">");
-  text = text.replace(/\[(.*?)\]\((.*?)\)/g, "<a href=\"$2\" target=\"_blank\">$1</a>");
-  text = text.replace(/\n/g, "<br>");
-  return text;
-}
-
-async function loadBackground() {
-  try {
-    const r = await fetch(gistMain);
-    const data = await r.json();
-    if (data.background) {
-      document.body.style.backgroundImage = `url(${data.background})`;
-    }
-  } catch (e) {}
-}
-
-async function loadContent() {
-  try {
-    const r = await fetch(gistMain);
-    const data = await r.json();
-    const content = data.content || "";
-    const card = document.getElementById("contentCard");
-    if (content.trim()) {
-      card.innerHTML = mdToHtml(content);
-      card.style.display = "block";
-    } else {
-      card.style.display = "none";
-    }
-  } catch (e) {
-    document.getElementById("contentCard").style.display = "none";
-  }
-}
 
 async function loadDownloads() {
   try {
@@ -98,6 +53,26 @@ async function loadDownloads() {
       html += "<tr>";
       keys.forEach(k => {
         if (k === "文件名" || k === "名称" || k === "file") {
+          html += `<td><a href="exe/${row[k]}" target="_blank">${row[k]}</a></td>`;
+        } else {
+          html += `<td>${row[k]}</td>`;
+        }
+      });
+      html += "</tr>";
+    });
+    html += "</tbody></table>";
+    box.innerHTML = html;
+  } catch (e) {
+    document.getElementById("downloadTable").innerHTML = '<div class="empty-tip">加载失败</div>';
+  }
+}
+
+window.onload = () => {
+  loadDownloads();
+}
+</script>
+</body>
+</html>
           html += `<td><a href="exe/${row[k]}" target="_blank">${row[k]}</a></td>`;
         } else {
           html += `<td>${row[k]}</td>`;
