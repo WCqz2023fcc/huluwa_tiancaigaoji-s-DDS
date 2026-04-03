@@ -14,9 +14,25 @@ body{
   line-height:1.7;
   padding-bottom:60px;
 }
-.container{max-width:960px;margin:40px auto;padding:0 20px}
-.card{background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,0.06);padding:28px;margin-bottom:24px}
-h1,h2,h3{color:#222;margin-bottom:16px;font-weight:600}
+
+/* 顶部白色标题框 */
+.top-box{
+  background:#fff;
+  text-align:center;
+  padding:20px;
+  margin:30px auto;
+  border-radius:16px;
+  max-width:960px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
+.top-box h1{
+  font-size:28px;
+  font-weight:bold;
+  color:#222;
+}
+
+.container{max-width:960px;margin:0 auto;padding:0 20px}
+.card{background:#fff;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.06);padding:28px;margin-bottom:24px}
 table{width:100%;border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden}
 th{background:#f5f7fa;padding:14px 16px;text-align:left;font-weight:600;color:#444}
 td{padding:14px 16px;border-top:1px solid #f0f0f0}
@@ -26,6 +42,12 @@ a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
+
+<!-- 顶部标题白框 -->
+<div class="top-box">
+  <h1>葫芦侠公益</h1>
+</div>
+
 <div class="container">
   <div class="card">
     <div id="downloadTable"></div>
@@ -52,7 +74,7 @@ async function loadDownloads() {
     rows.forEach(row => {
       html += "<tr>";
       keys.forEach(k => {
-        if (k === "文件名" || k === "名称" || k === "file") {
+        if (k === "文件名") {
           html += `<td><a href="exe/${row[k]}" target="_blank">${row[k]}</a></td>`;
         } else {
           html += `<td>${row[k]}</td>`;
