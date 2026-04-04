@@ -14,8 +14,6 @@ body{
   line-height:1.7;
   padding-bottom:60px;
 }
-
-/* 顶部白色标题框 */
 .top-box{
   background:#fff;
   text-align:center;
@@ -28,9 +26,8 @@ body{
 .top-box h1{
   font-size:20px;
   font-weight:bold;
-  color:#008000; /* 纯绿色 */
+  color:#008000;
 }
-
 .container{max-width:960px;margin:0 auto;padding:0 20px}
 .card{background:#fff;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.06);padding:28px;margin-bottom:24px}
 table{width:100%;border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden}
@@ -39,72 +36,84 @@ td{padding:14px 16px;border-top:1px solid #f0f0f0}
 a{color:#2e7dff;text-decoration:none;font-weight:500}
 a:hover{text-decoration:underline}
 .empty-tip{text-align:center;padding:30px;color:#888}
-.main-content{white-space:pre-wrap;line-height:1.8;font-size:16px}
+.main-content{line-height:1.8}
+.main-content h1{font-size:22px;margin:1em 0 0.5em}
+.main-content h2{font-size:20px;margin:1em 0 0.5em}
+.main-content h3{font-size:18px;margin:1em 0 0.5em}
+.main-content p{margin:0.6em 0}
+.main-content strong{font-weight:bold;color:#222}
+.main-content em{font-style:italic}
+.main-content ul{padding-left:22px;margin:0.6em 0}
+.main-content li{margin:0.4em 0}
+.main-content a{color:#2563eb;font-weight:500}
 </style>
 </head>
 <body>
 
-<!-- 顶部标题白框 -->
 <div class="top-box">
   <h1>葫芦侠公益</h1>
 </div>
 
 <div class="container">
-  <!-- 主页内容卡片 -->
   <div class="card">
     <div id="mainContent" class="main-content"></div>
   </div>
-
-  <!-- 下载列表卡片 -->
   <div class="card">
     <div id="downloadTable"></div>
   </div>
 </div>
 
 <script>
-const GIST_RAW_URL = "https://gist.githubusercontent.com/WCqz2023fcc/1ef4d08e0c9d566cbbed18354b2400a2/raw/";
+const GIST_RAW = "https://gist.githubusercontent.com/WCqz2023fcc/1ef4d08e0c9d566cbbed18354b2400a2/raw/";
 
-// 加载主页内容（修复键名+容错）
+function mdRender(text) {
+  if (!text) return "暂无内容";
+  text = text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/^# (.*?)$/gm, '<h1>$1</h1>')
+    .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
+    .replace(/^- (.*?)$/gm, '<li>$1</li>')
+    .replace(/<li>.*?<\/li>/gs, m => `<ul>${m}</ul>`)
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+    .replace(/\n/g, '<br>');
+  return text;
+}
+
 async function loadMain() {
   try {
-    const res = await fetch(GIST_RAW_URL + "main.json");
-    if (!res.ok) throw new Error(`请求失败: ${res.status}`);
-    const data = await res.json();
-    const el = document.getElementById("mainContent");
-    // 兼容两种键名：content / 内容
-    el.textContent = data.content || data.内容 || "暂无内容";
+    const r = await fetch(GIST_RAW + "main.json");
+    const data = await r.json();
+    const txt = data.content || data.内容 || "";
+    document.getElementById("mainContent").innerHTML = mdRender(txt);
   } catch (e) {
-    document.getElementById("mainContent").textContent = `加载失败: ${e.message}`;
-    console.error("主页加载错误:", e);
+    document.getElementById("mainContent").innerHTML = "加载失败";
   }
 }
 
-// 加载下载列表（修复键名+容错）
 async function loadDownloads() {
   try {
-    const r = await fetch(GIST_RAW_URL + "download.json");
-    if (!r.ok) throw new Error(`请求失败: ${r.status}`);
+    const r = await fetch(GIST_RAW + "download.json");
     const data = await r.json();
-    const rows = data.list || [];
+    const list = data.list || [];
     const box = document.getElementById("downloadTable");
-    
-    if (rows.length === 0) {
+
+    if (list.length === 0) {
       box.innerHTML = '<div class="empty-tip">暂无下载文件</div>';
       return;
     }
 
-    // 自动识别表头，兼容中文键名
-    const keys = Object.keys(rows[0]);
+    const keys = Object.keys(list[0]);
     let html = "<table><thead><tr>";
     keys.forEach(k => html += `<th>${k}</th>`);
     html += "</tr></thead><tbody>";
 
-    rows.forEach(row => {
+    list.forEach(row => {
       html += "<tr>";
       keys.forEach(k => {
         if (k === "文件名") {
-          // 点击直接下载
-          html += `<td><a href="exe/${row[k]}" download>${row[k]}</a></td>`;
+          html += `<td><a href="./exe/${row[k]}" download>${row[k]}</a></td>`;
         } else {
           html += `<td>${row[k]}</td>`;
         }
@@ -115,15 +124,11 @@ async function loadDownloads() {
     html += "</tbody></table>";
     box.innerHTML = html;
   } catch (e) {
-    document.getElementById("downloadTable").innerHTML = `<div class="empty-tip">加载失败: ${e.message}</div>`;
-    console.error("下载列表加载错误:", e);
+    document.getElementById("downloadTable").innerHTML = '<div class="empty-tip">加载失败</div>';
   }
 }
 
-window.onload = () => {
-  loadMain();
-  loadDownloads();
-};
+window.onload = () => { loadMain(); loadDownloads(); };
 </script>
 </body>
 </html>
