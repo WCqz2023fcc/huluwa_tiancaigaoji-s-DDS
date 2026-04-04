@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>葫芦侠公益</title>
-<!-- 完全保留你原有的毛玻璃内嵌CSS，1:1还原，无需额外文件 -->
+<!-- 完全保留你原有的毛玻璃样式，无任何修改 -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{
@@ -70,6 +70,7 @@ th{background:rgba(255,255,255,0.7)}
 </style>
 </head>
 <body>
+<!-- 页面头部，完全和你原来的一致 -->
 <div class="head"><h1>葫芦侠公益</h1></div>
 
 <div class="container">
@@ -79,31 +80,41 @@ th{background:rgba(255,255,255,0.7)}
 </div>
 
 <script>
-// ========== 自定义配置区：你可以在这里修改隐藏规则 ==========
-// 1. 要隐藏的文件夹，填文件夹名，用英文逗号分隔
-const HIDE_FOLDERS = ["private", "备份", "测试"];
-// 2. 要隐藏的文件/后缀，填文件名/通配符后缀，用英文逗号分隔
+// ========== 自定义隐藏规则，在这里修改即可 ==========
+// 1. 要隐藏的文件夹，填文件夹名，英文逗号分隔
+const HIDE_FOLDERS = ["private", "备份", "测试", "内部资料"];
+// 2. 要隐藏的文件/后缀，填文件名/通配符后缀，英文逗号分隔
 const HIDE_FILES = ["README.md", "*.log", "*.txt", ".gitignore"];
-// ============================================================
+// ======================================================
 
-// 生成表格DOM
+// 通配符匹配函数，用于隐藏规则
+function wildcardMatch(str, pattern) {
+  const regex = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$", "i");
+  return regex.test(str);
+}
+
+// 生成分类表格
 function createTable(files, title) {
   const container = document.createElement("div");
+  
+  // 分类标题
   const titleEl = document.createElement("div");
   titleEl.className = "category-title";
   titleEl.textContent = title;
   container.appendChild(titleEl);
 
+  // 表格主体
   const table = document.createElement("table");
   const thead = document.createElement("thead");
   const trHead = document.createElement("tr");
+  
   const thName = document.createElement("th");
   thName.textContent = "文件名";
   const thOp = document.createElement("th");
   thOp.textContent = "操作";
   thOp.style.width = "100px";
-  trHead.appendChild(thName);
-  trHead.appendChild(thOp);
+  
+  trHead.append(thName, thOp);
   thead.appendChild(trHead);
   table.appendChild(thead);
 
@@ -113,45 +124,41 @@ function createTable(files, title) {
     const tdName = document.createElement("td");
     tdName.textContent = file.name;
     const tdOp = document.createElement("td");
+    
     const a = document.createElement("a");
     a.className = "download";
     a.href = file.downloadUrl;
     a.target = "_blank";
     a.textContent = "下载";
+    
     tdOp.appendChild(a);
-    tr.appendChild(tdName);
-    tr.appendChild(tdOp);
+    tr.append(tdName, tdOp);
     tbody.appendChild(tr);
   }
+  
   table.appendChild(tbody);
   container.appendChild(table);
   return container;
 }
 
-// 通配符匹配函数
-function wildcardMatch(str, pattern) {
-  const regex = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$");
-  return regex.test(str);
-}
-
 // 核心加载逻辑
-async function loadFiles() {
+async function loadFileList() {
   const box = document.getElementById("fileBox");
   box.innerHTML = "<div class='empty'>正在加载文件列表...</div>";
 
   try {
-    // 读取本地同步好的文件列表，完全不用跨仓库请求API
+    // 读取Actions自动生成的文件列表
     const res = await fetch("./file_list.json");
     if (!res.ok) throw new Error("文件列表加载失败");
     const allFiles = await res.json();
 
     // 1. 过滤隐藏的文件夹和文件
     const validFiles = allFiles.filter(file => {
-      // 检查是否在隐藏文件夹里
+      // 过滤隐藏文件夹
       for (const folder of HIDE_FOLDERS) {
         if (file.path.includes(`${folder}/`)) return false;
       }
-      // 检查是否是要隐藏的文件
+      // 过滤隐藏文件
       for (const pattern of HIDE_FILES) {
         if (wildcardMatch(file.name, pattern)) return false;
       }
@@ -179,92 +186,25 @@ async function loadFiles() {
       hasContent = true;
     }
 
-    // 渲染分类（文件夹本身不显示，只按文件夹名生成分类）
+    // 渲染分类列表
     for (const [catName, files] of Object.entries(categories)) {
       box.appendChild(createTable(files, catName));
       hasContent = true;
     }
 
-    // 空状态
+    // 空状态提示
     if (!hasContent) {
       box.innerHTML = "<div class='empty'>仓库暂无文件</div>";
     }
 
-  } catch (e) {
-    console.error(e);
+  } catch (error) {
+    console.error("加载失败：", error);
     box.innerHTML = "<div class='empty'>加载失败，请刷新重试</div>";
   }
 }
 
 // 启动加载
-loadFiles();
+loadFileList();
 </script>
-</body>
-</html>
-          {% break %}
-        {% endif %}
-      {% endfor %}
-      {% if is_hidden == true %}{% continue %}{% endif %}
-
-      {% comment %} 有效文件加入列表 {% endcomment %}
-      {% assign valid_files = valid_files | push: file %}
-    {% endfor %}
-
-    {% comment %} 3. 拆分根目录文件（无分类）和文件夹内文件（分类） {% endcomment %}
-    {% assign root_files = valid_files | where_exp: "file", "file.path contains '/' == false" %}
-    {% assign folder_files = valid_files | where_exp: "file", "file.path contains '/' == true" %}
-
-    {% comment %} 4. 渲染无分类（根目录文件） {% endcomment %}
-    {% if root_files.size > 0 %}
-      <div class="category-title">无分类</div>
-      <table>
-        <thead>
-          <tr>
-            <th>文件名</th>
-            <th width="100">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for file in root_files %}
-          <tr>
-            <td>{{ file.name }}</td>
-            <td><a class="download" href="{{ file.path | relative_url }}" target="_blank">下载</a></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% endif %}
-
-    {% comment %} 5. 渲染分类（文件夹内文件，文件夹本身不显示，只按文件夹名生成分类） {% endcomment %}
-    {% if folder_files.size > 0 %}
-      {% assign categories = folder_files | group_by_exp: "file", "file.path | split: '/' | pop | join: '/'" %}
-      {% for category in categories %}
-        <div class="category-title">{{ category.name }}</div>
-        <table>
-          <thead>
-            <tr>
-              <th>文件名</th>
-              <th width="100">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for file in category.items %}
-            <tr>
-              <td>{{ file.name }}</td>
-              <td><a class="download" href="{{ file.path | relative_url }}" target="_blank">下载</a></td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% endfor %}
-    {% endif %}
-
-    {% comment %} 6. 空状态提示 {% endcomment %}
-    {% if valid_files.size == 0 %}
-      <div class="empty">仓库暂无文件</div>
-    {% endif %}
-  </div>
-</div>
-
 </body>
 </html>
