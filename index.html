@@ -6,49 +6,71 @@
 <title>葫芦侠公益</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-/* 背景图核心样式：全屏、自适应、不重复 */
+/* 背景图设置 */
 body{
   font-family:system-ui,sans-serif;
   background:#f7f8fa url('./bg.jpg') no-repeat center center fixed;
   background-size:cover;
   padding:0 0 40px;
 }
+
+/* 核心样式：毛玻璃 + 60% 透明 */
+.glass-card{
+  background:rgba(255, 255, 255, 0.6); /* 白色透明 60% */
+  backdrop-filter:blur(10px); /* 毛玻璃核心 */
+  -webkit-backdrop-filter:blur(10px); /* 兼容手机 */
+  border-radius:16px;
+  box-shadow:0 4px 12px rgba(31, 38, 135, 0.1); /* 柔和阴影 */
+  border:1px solid rgba(255, 255, 255, 0.8); /* 轻微边框增强质感 */
+}
+
+/* 标题头：毛玻璃透明 */
 .head{
-  background:#fff;
   text-align:center;
   padding:16px;
   margin:20px auto;
   border-radius:12px;
   max-width:300px;
-  box-shadow:0 2px 10px rgba(0,0,0,0.05);
+  background:rgba(255, 255, 255, 0.6);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
 }
 .head h1{font-size:20px;color:#009900}
+
 .container{max-width:900px;margin:0 auto;padding:0 14px}
-.card{
-  background:#fff;
-  border-radius:16px;
-  box-shadow:0 2px 12px rgba(0,0,0,0.05);
+
+/* 内容卡片：使用毛玻璃类 */
+#content .card{
   padding:22px;
   margin:20px 0;
 }
-/* 表格样式不变 */
+
+/* 下载列表卡片：使用毛玻璃类 */
+#files{
+  padding:22px;
+  margin:20px 0;
+}
+
+/* 表格样式：透明化 */
 table{
   width:100%;
   border-collapse:collapse;
   font-size:14px;
+  background:rgba(255, 255, 255, 0.5);
 }
 th{
-  background:#f5f7fa;
+  background:rgba(245, 247, 250, 0.7);
   padding:10px 12px;
   text-align:left;
-  border:1px solid #e5e7eb;
+  border:1px solid rgba(229, 231, 235, 0.8);
   font-weight:600;
   color:#333;
 }
 td{
   padding:10px 12px;
-  border:1px solid #e5e7eb;
+  border:1px solid rgba(229, 231, 235, 0.8);
   color:#444;
+  background:rgba(255, 255, 255, 0.4);
 }
 a{color:#0066cc;text-decoration:none}
 a:hover{text-decoration:underline}
@@ -59,10 +81,10 @@ a:hover{text-decoration:underline}
 
 <div class="head"><h1>葫芦侠公益</h1></div>
 <div class="container">
-  <!-- 内容卡片：空内容时不渲染 -->
+  <!-- 内容卡片：空内容不渲染 -->
   <div id="content"></div>
-  <!-- 下载列表卡片 -->
-  <div class="card" id="files"></div>
+  <!-- 下载列表卡片：毛玻璃外壳 -->
+  <div id="files" class="glass-card"></div>
 </div>
 
 <script>
@@ -76,14 +98,14 @@ function md(s){
 }
 
 async function load(){
-  // 1. 加载主页内容：空内容时不渲染卡片
+  // 1. 加载主页内容
   let c = await fetch(gist+"main.json").then(r=>r.json());
   const contentEl = document.getElementById("content");
   const contentText = c.content || "";
   
   if(contentText.trim() !== ""){
     const card = document.createElement("div");
-    card.className = "card";
+    card.className = "card glass-card"; // 加入毛玻璃类
     card.innerHTML = md(contentText);
     contentEl.appendChild(card);
   }
