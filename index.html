@@ -11,11 +11,11 @@ body{font-family:system-ui,sans-serif;background:#f7f8fa;padding:0 0 40px}
 .head h1{font-size:20px;color:#009900}
 .container{max-width:900px;margin:0 auto;padding:0 14px}
 .card{background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,0.05);padding:22px;margin:20px 0}
-/* 表格核心样式优化：字体缩小、边框、间距更规整 */
+/* 表格样式 */
 table{
   width:100%;
   border-collapse:collapse;
-  font-size:14px; /* 整体字体缩小 */
+  font-size:14px;
 }
 th{
   background:#f5f7fa;
@@ -32,7 +32,6 @@ td{
 }
 a{color:#0066cc;text-decoration:none}
 a:hover{text-decoration:underline}
-/* 空数据提示样式 */
 .empty-tip{text-align:center;padding:20px;color:#666;font-size:14px}
 </style>
 </head>
@@ -40,7 +39,9 @@ a:hover{text-decoration:underline}
 
 <div class="head"><h1>葫芦侠公益</h1></div>
 <div class="container">
-  <div class="card" id="content"></div>
+  <!-- 内容卡片：空内容时不渲染 -->
+  <div id="content"></div>
+  <!-- 下载列表卡片：始终保留，空时显示暂无文件 -->
   <div class="card" id="files"></div>
 </div>
 
@@ -55,15 +56,24 @@ function md(s){
 }
 
 async function load(){
-  // 加载主页内容
+  // 1. 加载主页内容：空内容时不渲染卡片
   let c = await fetch(gist+"main.json").then(r=>r.json());
-  document.getElementById("content").innerHTML = md(c.content||"");
+  const contentEl = document.getElementById("content");
+  const contentText = c.content || "";
+  
+  // 只有内容非空时，才创建并渲染卡片
+  if(contentText.trim() !== ""){
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = md(contentText);
+    contentEl.appendChild(card);
+  }
 
-  // 加载下载列表
+  // 2. 加载下载列表：始终保留卡片，空时显示暂无文件
   let d = await fetch(gist+"download.json").then(r=>r.json());
   let list = d.list||[];
+  const filesEl = document.getElementById("files");
   
-  // 生成表格HTML
   let html = `
   <table>
     <thead>
@@ -77,7 +87,7 @@ async function load(){
   `;
   
   if(list.length === 0){
-    html += `<tr><td colspan="3" class="empty-tip">暂无文件</td></tr>`;
+    html += `<tr><td colspan="3" class="empty-tip">暂无下载文件</td></tr>`;
   }else{
     list.forEach(i=>{
       html+=`
@@ -90,7 +100,7 @@ async function load(){
   }
   
   html += `</tbody></table>`;
-  document.getElementById("files").innerHTML = html;
+  filesEl.innerHTML = html;
 }
 load();
 </script>
