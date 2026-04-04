@@ -6,129 +6,93 @@
 <title>葫芦侠公益</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{
-  font-family:"Segoe UI",Roboto,sans-serif;
-  background:#f7f8fa url("bg.jpg") center center fixed;
-  background-size:cover;
+body{font-family:system-ui,sans-serif;background:#f7f8fa;padding:0 0 40px}
+.head{background:#fff;text-align:center;padding:16px;margin:20px auto;border-radius:12px;max-width:300px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
+.head h1{font-size:20px;color:#009900}
+.container{max-width:900px;margin:0 auto;padding:0 14px}
+.card{background:#fff;border-radius:16px;box-shadow:0 2px 12px rgba(0,0,0,0.05);padding:22px;margin:20px 0}
+/* 表格核心样式优化：字体缩小、边框、间距更规整 */
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px; /* 整体字体缩小 */
+}
+th{
+  background:#f5f7fa;
+  padding:10px 12px;
+  text-align:left;
+  border:1px solid #e5e7eb;
+  font-weight:600;
   color:#333;
-  line-height:1.7;
-  padding-bottom:60px;
 }
-.top-box{
-  background:#fff;
-  text-align:center;
-  padding:12px 20px;
-  margin:20px auto;
-  border-radius:12px;
-  max-width:260px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.1);
+td{
+  padding:10px 12px;
+  border:1px solid #e5e7eb;
+  color:#444;
 }
-.top-box h1{
-  font-size:20px;
-  font-weight:bold;
-  color:#008000;
-}
-.container{max-width:960px;margin:0 auto;padding:0 20px}
-.card{background:#fff;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.06);padding:28px;margin-bottom:24px}
-table{width:100%;border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden}
-th{background:#f5f7fa;padding:14px 16px;text-align:left;font-weight:600;color:#444}
-td{padding:14px 16px;border-top:1px solid #f0f0f0}
-a{color:#2e7dff;text-decoration:none;font-weight:500}
+a{color:#0066cc;text-decoration:none}
 a:hover{text-decoration:underline}
-.empty-tip{text-align:center;padding:30px;color:#888}
-.main-content{line-height:1.8}
-.main-content h1{font-size:22px;margin:1em 0 0.5em}
-.main-content h2{font-size:20px;margin:1em 0 0.5em}
-.main-content h3{font-size:18px;margin:1em 0 0.5em}
-.main-content p{margin:0.6em 0}
-.main-content strong{font-weight:bold;color:#222}
-.main-content em{font-style:italic}
-.main-content ul{padding-left:22px;margin:0.6em 0}
-.main-content li{margin:0.4em 0}
-.main-content a{color:#2563eb;font-weight:500}
+/* 空数据提示样式 */
+.empty-tip{text-align:center;padding:20px;color:#666;font-size:14px}
 </style>
 </head>
 <body>
 
-<div class="top-box">
-  <h1>葫芦侠公益</h1>
-</div>
-
+<div class="head"><h1>葫芦侠公益</h1></div>
 <div class="container">
-  <div class="card">
-    <div id="mainContent" class="main-content"></div>
-  </div>
-  <div class="card">
-    <div id="downloadTable"></div>
-  </div>
+  <div class="card" id="content"></div>
+  <div class="card" id="files"></div>
 </div>
 
 <script>
-const GIST_RAW = "https://gist.githubusercontent.com/WCqz2023fcc/1ef4d08e0c9d566cbbed18354b2400a2/raw/";
+const gist = "https://gist.githubusercontent.com/WCqz2023fcc/1ef4d08e0c9d566cbbed18354b2400a2/raw/";
 
-function mdRender(text) {
-  if (!text) return "暂无内容";
-  text = text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/^# (.*?)$/gm, '<h1>$1</h1>')
-    .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
-    .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
-    .replace(/^- (.*?)$/gm, '<li>$1</li>')
-    .replace(/<li>.*?<\/li>/gs, m => `<ul>${m}</ul>`)
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-    .replace(/\n/g, '<br>');
-  return text;
+function md(s){
+  return s
+    .replace(/# (.*)/g,"<h2>$1</h2>")
+    .replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>")
+    .replace(/\n/g,"<br>")
 }
 
-async function loadMain() {
-  try {
-    const r = await fetch(GIST_RAW + "main.json");
-    const data = await r.json();
-    const txt = data.content || data.内容 || "";
-    document.getElementById("mainContent").innerHTML = mdRender(txt);
-  } catch (e) {
-    document.getElementById("mainContent").innerHTML = "加载失败";
-  }
-}
+async function load(){
+  // 加载主页内容
+  let c = await fetch(gist+"main.json").then(r=>r.json());
+  document.getElementById("content").innerHTML = md(c.content||"");
 
-async function loadDownloads() {
-  try {
-    const r = await fetch(GIST_RAW + "download.json");
-    const data = await r.json();
-    const list = data.list || [];
-    const box = document.getElementById("downloadTable");
-
-    if (list.length === 0) {
-      box.innerHTML = '<div class="empty-tip">暂无下载文件</div>';
-      return;
-    }
-
-    const keys = Object.keys(list[0]);
-    let html = "<table><thead><tr>";
-    keys.forEach(k => html += `<th>${k}</th>`);
-    html += "</tr></thead><tbody>";
-
-    list.forEach(row => {
-      html += "<tr>";
-      keys.forEach(k => {
-        if (k === "文件名") {
-          html += `<td><a href="./exe/${row[k]}" download>${row[k]}</a></td>`;
-        } else {
-          html += `<td>${row[k]}</td>`;
-        }
-      });
-      html += "</tr>";
+  // 加载下载列表
+  let d = await fetch(gist+"download.json").then(r=>r.json());
+  let list = d.list||[];
+  
+  // 生成表格HTML
+  let html = `
+  <table>
+    <thead>
+      <tr>
+        <th>文件名</th>
+        <th>版本</th>
+        <th>介绍</th>
+      </tr>
+    </thead>
+    <tbody>
+  `;
+  
+  if(list.length === 0){
+    html += `<tr><td colspan="3" class="empty-tip">暂无文件</td></tr>`;
+  }else{
+    list.forEach(i=>{
+      html+=`
+      <tr>
+        <td><a href="./exe/${i.文件名}" target="_blank">${i.文件名}</a></td>
+        <td>${i.版本}</td>
+        <td>${i.介绍}</td>
+      </tr>`;
     });
-
-    html += "</tbody></table>";
-    box.innerHTML = html;
-  } catch (e) {
-    document.getElementById("downloadTable").innerHTML = '<div class="empty-tip">加载失败</div>';
   }
+  
+  html += `</tbody></table>`;
+  document.getElementById("files").innerHTML = html;
 }
-
-window.onload = () => { loadMain(); loadDownloads(); };
+load();
 </script>
 </body>
 </html>
