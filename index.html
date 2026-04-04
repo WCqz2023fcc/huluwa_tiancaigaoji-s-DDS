@@ -8,12 +8,32 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{
   font-family:system-ui,sans-serif;
-  background:#f7f8fa url('./bg.jpg') no-repeat center center fixed;
+  background:url('./bg.jpg') no-repeat center center fixed;
   background-size:cover;
   padding:0 0 40px;
 }
 
-/* 毛玻璃 + 60% 透明通用样式 */
+.head{
+  background:rgba(255,255,255,0.6);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  text-align:center;
+  padding:16px;
+  margin:20px auto;
+  border-radius:12px;
+  max-width:300px;
+}
+.head h1{
+  font-size:20px;
+  color:#009900;
+}
+
+.container{
+  max-width:900px;
+  margin:0 auto;
+  padding:0 14px;
+}
+
 .glass{
   background:rgba(255,255,255,0.6);
   backdrop-filter:blur(10px);
@@ -21,116 +41,99 @@ body{
   border-radius:16px;
   box-shadow:0 4px 12px rgba(0,0,0,0.08);
   border:1px solid rgba(255,255,255,0.7);
+  padding:22px;
+  margin:20px 0;
 }
 
-.head{
-  text-align:center;
-  padding:16px;
-  margin:20px auto;
-  max-width:300px;
-  border-radius:12px;
-  background:rgba(255,255,255,0.6);
-  backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
-}
-.head h1{font-size:20px;color:#009900}
-
-.container{max-width:900px;margin:0 auto;padding:0 14px}
-
-/* 表格样式：清晰边框 + 透明 */
 table{
   width:100%;
   border-collapse:collapse;
   font-size:14px;
-  background:transparent;
 }
 th{
   background:rgba(255,255,255,0.7);
-  padding:12px 14px;
+  padding:10px 12px;
   text-align:left;
   font-weight:600;
-  color:#222;
-  border:1.5px solid #888; /* 更清晰的分界线 */
+  border:1.5px solid #888;
 }
 td{
-  padding:12px 14px;
-  color:#333;
+  padding:10px 12px;
   background:rgba(255,255,255,0.5);
-  border:1.5px solid #888; /* 更清晰的分界线 */
+  border:1.5px solid #888;
 }
-
-a{color:#0066cc;text-decoration:none}
-a:hover{text-decoration:underline}
-.empty-tip{text-align:center;padding:20px;color:#666;font-size:14px}
+.download{
+  color:#0066cc;
+  text-decoration:none;
+  font-weight:bold;
+}
+.download:hover{
+  text-decoration:underline;
+}
+.empty{
+  text-align:center;
+  padding:20px;
+  color:#666;
+}
 </style>
 </head>
 <body>
 
-<div class="head"><h1>葫芦侠公益</h1></div>
+<div class="head">
+  <h1>葫芦侠公益</h1>
+</div>
+
 <div class="container">
-  <div id="content"></div>
-  <div id="files" class="glass" style="padding:22px;margin:20px 0;"></div>
+  <div class="glass" id="fileBox"></div>
 </div>
 
 <script>
-const gist = "https://gist.githubusercontent.com/WCqz2023fcc/1ef4d08e0c9d566cbbed18354b2400a2/raw/";
+// 已修正仓库名
+const USER = "WCqz2023fcc";
+const REPO = "huluxia_tiancaigaoji's_cangku";
+const API = `https://api.github.com/repos/${USER}/${REPO}/contents/`;
 
-function md(s){
-  return s
-    .replace(/# (.*)/g,"<h2>$1</h2>")
-    .replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>")
-    .replace(/\n/g,"<br>");
-}
+async function loadFiles() {
+  const box = document.getElementById("fileBox");
+  try {
+    const res = await fetch(API);
+    const files = await res.json();
 
-async function load(){
-  // 1. 加载主页内容：空内容不渲染
-  let c = await fetch(gist + "main.json").then(r => r.json());
-  const contentEl = document.getElementById("content");
-  const contentText = c.content || "";
-  
-  if(contentText.trim() !== ""){
-    const card = document.createElement("div");
-    card.className = "glass";
-    card.style.padding = "22px";
-    card.style.margin = "20px 0";
-    card.innerHTML = md(contentText);
-    contentEl.appendChild(card);
-  }
+    if (!Array.isArray(files) || files.length === 0) {
+      box.innerHTML = `<div class="empty">仓库暂无文件</div>`;
+      return;
+    }
 
-  // 2. 加载下载列表
-  let d = await fetch(gist + "download.json").then(r => r.json());
-  let list = d.list || [];
-  const filesEl = document.getElementById("files");
-  
-  let html = `
-  <table>
-    <thead>
-      <tr>
-        <th>文件名</th>
-        <th>版本</th>
-        <th>介绍</th>
-      </tr>
-    </thead>
-    <tbody>
-  `;
-  
-  if(list.length === 0){
-    html += `<tr><td colspan="3" class="empty-tip">暂无下载文件</td></tr>`;
-  }else{
-    list.forEach(i => {
+    // 过滤掉 README.md
+    const showFiles = files.filter(f => f.name !== "README.md");
+
+    let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>文件名</th>
+          <th width="100">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+    `;
+
+    showFiles.forEach(file => {
       html += `
       <tr>
-        <td><a href="./exe/${i.文件名}" target="_blank">${i.文件名}</a></td>
-        <td>${i.版本}</td>
-        <td>${i.介绍}</td>
+        <td>${file.name}</td>
+        <td><a class="download" href="${file.download_url}" target="_blank">下载</a></td>
       </tr>`;
     });
+
+    html += `</tbody></table>`;
+    box.innerHTML = html;
+  } catch (e) {
+    box.innerHTML = `<div class="empty">加载失败</div>`;
   }
-  
-  html += `</tbody></table>`;
-  filesEl.innerHTML = html;
 }
-load();
+
+loadFiles();
 </script>
 </body>
 </html>
