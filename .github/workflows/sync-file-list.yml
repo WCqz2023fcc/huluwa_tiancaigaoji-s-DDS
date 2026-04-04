@@ -1,43 +1,46 @@
 name: 自动同步文件仓库列表
 on:
-  # 每30分钟自动扫一次文件仓库，更新列表
-  schedule:
-    - cron: '*/30 * * * *'
-  # 手动触发也可以
+  # 先只开手动触发，跑通了再加自动定时
   workflow_dispatch:
-  # 页面仓库提交代码时也同步一次
+  # 页面仓库提交代码时自动同步
   push:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: 检出页面仓库
+      - name: 检出当前页面仓库
         uses: actions/checkout@v4
         with:
+          # 用你的Token给git读写权限
           token: ${{ secrets.FILE_REPO_TOKEN }}
 
-      - name: 扫描文件仓库，生成文件列表
+      - name: 拉取文件仓库目录树，生成文件列表
         env:
           TOKEN: ${{ secrets.FILE_REPO_TOKEN }}
-          FILE_REPO: WCqz2023fcc/huluxia_tiancaigaoji-s_cangku
+          # 这里必须和你的文件仓库名完全一致，一字不差！
+          FILE_REPO: "WCqz2023fcc/huluxia_tiancaigaoji-s_cangku"
+          # 文件仓库的默认分支，一般是main，不对就改成master
+          FILE_REPO_BRANCH: "main"
         run: |
-          # 拉取文件仓库完整目录树
-          curl -H "Authorization: token $TOKEN" \
-               -H "Accept: application/vnd.github.v3+json" \
-               "https://api.github.com/repos/$FILE_REPO/git/trees/main?recursive=1" > tree.json
-          
-          # 生成标准化文件列表JSON
+          # 拉取文件仓库完整目录树，加失败重试
+          curl -f -L \
+            -H "Authorization: token $TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/$FILE_REPO/git/trees/$FILE_REPO_BRANCH?recursive=1" > tree.json
+
+          # 生成标准化文件列表，兼容所有路径
           echo "[" > file_list.json
           jq -r '.tree[] | select(.type == "blob") | @base64' tree.json | while read -r line; do
             item=$(echo "$line" | base64 -d)
             path=$(echo "$item" | jq -r '.path')
             name=$(basename "$path")
             category=$(dirname "$path" | sed 's/^\.$//')
-            downloadUrl="https://raw.githubusercontent.com/$FILE_REPO/main/$path"
+            downloadUrl="https://raw.githubusercontent.com/$FILE_REPO/$FILE_REPO_BRANCH/$path"
             echo "{\"name\":\"$name\",\"path\":\"$path\",\"category\":\"$category\",\"downloadUrl\":\"$downloadUrl\"}," >> file_list.json
           done
+          # 修复最后一个逗号的问题
           sed -i '$ s/,$//' file_list.json
           echo "]" >> file_list.json
 
@@ -49,5 +52,5 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add file_list.json
-          git commit -m "自动同步文件仓库列表" || exit 0
+          git commit -m "自动同步文件仓库列表" || echo "无更新，跳过提交"
           git push
