@@ -13,7 +13,7 @@ body{
   padding:0 0 40px;
 }
 
-/* 毛玻璃 + 60% 透明 */
+/* 毛玻璃 + 60% 透明通用样式 */
 .glass{
   background:rgba(255,255,255,0.6);
   backdrop-filter:blur(10px);
@@ -37,7 +37,7 @@ body{
 
 .container{max-width:900px;margin:0 auto;padding:0 14px}
 
-/* 表格样式：边框加深、更清晰 */
+/* 表格样式：清晰边框 + 透明 */
 table{
   width:100%;
   border-collapse:collapse;
@@ -46,17 +46,17 @@ table{
 }
 th{
   background:rgba(255,255,255,0.7);
-  padding:10px 12px;
+  padding:12px 14px;
   text-align:left;
   font-weight:600;
   color:#222;
-  border:1px solid #aaa; /* 清晰边框 */
+  border:1.5px solid #888; /* 更清晰的分界线 */
 }
 td{
-  padding:10px 12px;
+  padding:12px 14px;
   color:#333;
   background:rgba(255,255,255,0.5);
-  border:1px solid #aaa; /* 清晰边框 */
+  border:1.5px solid #888; /* 更清晰的分界线 */
 }
 
 a{color:#0066cc;text-decoration:none}
@@ -69,7 +69,7 @@ a:hover{text-decoration:underline}
 <div class="head"><h1>葫芦侠公益</h1></div>
 <div class="container">
   <div id="content"></div>
-  <div id="files" class="glass"></div>
+  <div id="files" class="glass" style="padding:22px;margin:20px 0;"></div>
 </div>
 
 <script>
@@ -79,12 +79,12 @@ function md(s){
   return s
     .replace(/# (.*)/g,"<h2>$1</h2>")
     .replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>")
-    .replace(/\n/g,"<br>")
+    .replace(/\n/g,"<br>");
 }
 
 async function load(){
-  // 主页内容
-  let c = await fetch(gist+"main.json").then(r=>r.json());
+  // 1. 加载主页内容：空内容不渲染
+  let c = await fetch(gist + "main.json").then(r => r.json());
   const contentEl = document.getElementById("content");
   const contentText = c.content || "";
   
@@ -97,52 +97,9 @@ async function load(){
     contentEl.appendChild(card);
   }
 
-  // 下载列表
-  let d = await fetch(gist+"download.json").then(r=>r.json());
-  let list = d.list||[];
-  const filesEl = document.getElementById("files");
-  
-  let html = `
-  <table>
-    <thead>
-      <tr>
-        <th>文件名</th>
-        <th>版本</th>
-        <th>介绍</th>
-      </tr>
-    </thead>
-    <tbody>
-  `;
-  
-  if(list.length === 0){
-    html += `<tr><td colspan="3" class="empty-tip">暂无下载文件</td></tr>`;
-  }else{
-    list.forEach(i=>{
-      html+=`
-      <tr>
-        <td><a href="./exe/${i.文件名}" target="_blank">${i.文件名}</a></td>
-        <td>${i.版本}</td>
-        <td>${i.介绍}</td>
-      </tr>`;
-    });
-  }
-  
-  html += `</tbody></table>`;
-  filesEl.innerHTML = html;
-}
-load();
-</script>
-</body>
-</html>
-    const card = document.createElement("div");
-    card.className = "card glass-card"; // 加入毛玻璃类
-    card.innerHTML = md(contentText);
-    contentEl.appendChild(card);
-  }
-
   // 2. 加载下载列表
-  let d = await fetch(gist+"download.json").then(r=>r.json());
-  let list = d.list||[];
+  let d = await fetch(gist + "download.json").then(r => r.json());
+  let list = d.list || [];
   const filesEl = document.getElementById("files");
   
   let html = `
@@ -160,8 +117,8 @@ load();
   if(list.length === 0){
     html += `<tr><td colspan="3" class="empty-tip">暂无下载文件</td></tr>`;
   }else{
-    list.forEach(i=>{
-      html+=`
+    list.forEach(i => {
+      html += `
       <tr>
         <td><a href="./exe/${i.文件名}" target="_blank">${i.文件名}</a></td>
         <td>${i.版本}</td>
