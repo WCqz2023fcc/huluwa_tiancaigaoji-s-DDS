@@ -101,10 +101,87 @@ td{
 <script>
 const USER = "WCqz2023fcc";
 const REPO = "huluxia_tiancaigaoji's_cangku";
-const API = `https://api.github.com/repos/${USER}/${REPO}/contents/`;
+const API = "https://api.github.com/repos/" + USER + "/" + REPO + "/contents/";
 
-async function loadAllFiles(path = "") {
-  const res = await fetch(`${API}${path}`);
+async function loadAllFiles(path) {
+  path = path || "";
+  const res = await fetch(API + path);
+  const items = await res.json();
+  if (!Array.isArray(items)) return { rootFiles: [], categories: {} };
+
+  const rootFiles = [];
+  const categories = {};
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (item.name === "README.md") continue;
+
+    if (item.type === "dir") {
+      const subResult = await loadAllFiles(path + item.name + "/");
+      if (subResult.rootFiles.length > 0) {
+        categories[item.name] = (categories[item.name] || []).concat(subResult.rootFiles);
+      }
+      const subCats = Object.entries(subResult.categories);
+      for (let j = 0; j < subCats.length; j++) {
+        const [catName, files] = subCats[j];
+        const fullCatName = item.name + "/" + catName;
+        categories[fullCatName] = (categories[fullCatName] || []).concat(files);
+      }
+    } else if (item.type === "file") {
+      rootFiles.push(item);
+    }
+  }
+
+  return { rootFiles: rootFiles, categories: categories };
+}
+
+async function loadFiles() {
+  const box = document.getElementById("fileBox");
+  try {
+    const data = await loadAllFiles("");
+    const rootFiles = data.rootFiles;
+    const categories = data.categories;
+    let html = "";
+
+    if (rootFiles.length > 0) {
+      html += "<div class='category-title'>无分类</div><table><thead><tr><th>文件名</th><th width='100'>操作</th></tr></thead><tbody>";
+      for (let i = 0; i < rootFiles.length; i++) {
+        const file = rootFiles[i];
+        html += "<tr><td>" + file.name + "</td><td><a class='download' href='" + file.download_url + "' target='_blank'>下载</a></td></tr>";
+      }
+      html += "</tbody></table>";
+    }
+
+    const catNames = Object.keys(categories);
+    if (catNames.length > 0) {
+      for (let i = 0; i < catNames.length; i++) {
+        const catName = catNames[i];
+        const files = categories[catName];
+        if (files.length === 0) continue;
+        html += "<div class='category-title'>" + catName + "</div><table><thead><tr><th>文件名</th><th width='100'>操作</th></tr></thead><tbody>";
+        for (let j = 0; j < files.length; j++) {
+          const file = files[j];
+          html += "<tr><td>" + file.name + "</td><td><a class='download' href='" + file.download_url + "' target='_blank'>下载</a></td></tr>";
+        }
+        html += "</tbody></table>";
+      }
+    }
+
+    if (rootFiles.length === 0 && catNames.length === 0) {
+      html = "<div class='empty'>仓库暂无文件</div>";
+    }
+
+    box.innerHTML = html;
+  } catch (e) {
+    box.innerHTML = "<div class='empty'>加载失败</div>";
+    console.error(e);
+  }
+}
+
+loadFiles();
+</script>
+</body>
+</html>
   const items = await res.json();
   if (!Array.isArray(items)) return { rootFiles: [], categories: {} };
 
