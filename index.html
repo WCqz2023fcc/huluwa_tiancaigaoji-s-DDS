@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="UTF-8">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,44 +8,39 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{
   font-family:system-ui,sans-serif;
-  background:url('./bg.jpg') no-repeat center center fixed;
+  background:url('./bg.jpg') no-repeat center fixed;
   background-size:cover;
-  padding:0 0 40px;
+  padding:30px 0
 }
 .head{
   background:rgba(255,255,255,0.6);
   backdrop-filter:blur(8px);
-  -webkit-backdrop-filter:blur(8px);
   text-align:center;
   padding:16px;
-  margin:20px auto;
+  margin:0 auto 20px;
   border-radius:12px;
   max-width:300px;
 }
-.head h1{font-size:20px;color:#009900}
-.container{max-width:900px;margin:0 auto;padding:0 14px}
+.head h1{font-size:20px;color:#009000}
+.container{max-width:900px;margin:auto;padding:0 14px}
 .glass{
   background:rgba(255,255,255,0.6);
   backdrop-filter:blur(10px);
-  -webkit-backdrop-filter:blur(10px);
   border-radius:16px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.08);
-  border:1px solid rgba(255,255,255,0.7);
+  box-shadow:0 4px 12px rgba(0,0,0,0.1);
+  border:1px solid #fff;
   padding:22px;
-  margin:20px 0;
 }
 .category-title{
   font-size:18px;
-  font-weight:600;
-  color:#222;
-  margin:16px 0 8px 0;
-  padding-bottom:4px;
+  font-weight:bold;
+  margin:20px 0 8px;
   border-bottom:1.5px solid #888;
+  padding-bottom:4px;
 }
 table{
   width:100%;
   border-collapse:collapse;
-  font-size:14px;
   margin-bottom:16px;
 }
 th,td{
@@ -61,135 +56,91 @@ th{background:rgba(255,255,255,0.7)}
 }
 .empty{
   text-align:center;
-  padding:20px;
+  padding:30px 0;
   color:#666;
-  font-size:14px;
 }
 </style>
 </head>
 <body>
-<div class="head"><h1>葫芦侠公益</h1></div>
-<div class="container"><div class="glass" id="fileBox"></div></div>
+
+<div class="head">
+  <h1>葫芦侠公益</h1>
+</div>
+
+<div class="container">
+  <div class="glass" id="fileBox"></div>
+</div>
 
 <script>
-// 你的GitHub配置
-const USER = "WCqz2023fcc";
-const REPO = "huluxia_tiancaigaoji's_cangku";
-const TOKEN = "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";
-const API_BASE = `https://api.github.com/repos/${USER}/${REPO}/contents/`;
+const user = "WCqz2023fcc";
+const repo = "huluxia_tiancaigaoji's_cangku";
+const api = "https://api.github.com/repos/" + user + "/" + repo + "/contents/";
 
-// 请求头加Token，彻底解决限流+权限问题
-const headers = {
-  Authorization: `token ${TOKEN}`,
-  Accept: "application/vnd.github.v3+json"
-};
-
-// 极简DOM生成，零模板字符串
-function createTable(files, title) {
-  const container = document.createElement("div");
-  if (title) {
-    const titleEl = document.createElement("div");
-    titleEl.className = "category-title";
-    titleEl.textContent = title;
-    container.appendChild(titleEl);
-  }
-
-  const table = document.createElement("table");
-  const thead = document.createElement("thead");
-  const trHead = document.createElement("tr");
-  const thName = document.createElement("th");
-  thName.textContent = "文件名";
-  const thOp = document.createElement("th");
-  thOp.textContent = "操作";
-  thOp.style.width = "100px";
-  trHead.appendChild(thName);
-  trHead.appendChild(thOp);
-  thead.appendChild(trHead);
-  table.appendChild(thead);
-
-  const tbody = document.createElement("tbody");
-  for (const file of files) {
-    const tr = document.createElement("tr");
-    const tdName = document.createElement("td");
-    tdName.textContent = file.name;
-    const tdOp = document.createElement("td");
-    const a = document.createElement("a");
-    a.className = "download";
-    a.href = file.download_url;
-    a.target = "_blank";
-    a.textContent = "下载";
-    tdOp.appendChild(a);
-    tr.appendChild(tdName);
-    tr.appendChild(tdOp);
-    tbody.appendChild(tr);
-  }
-  table.appendChild(tbody);
-  container.appendChild(table);
-  return container;
-}
-
-// 核心：带Token的文件读取，彻底解决限流
-async function fetchFiles(path = "") {
-  try {
-    const res = await fetch(`${API_BASE}${path}`, { headers });
-    if (!res.ok) {
-      console.error(`API请求失败: ${res.status} ${res.statusText}`);
-      return { files: [], dirs: [] };
-    }
-    const data = await res.json();
-    if (!Array.isArray(data)) return { files: [], dirs: [] };
-
-    const files = [];
-    const dirs = [];
-    for (const item of data) {
-      if (item.name === "README.md") continue;
-      if (item.type === "file") files.push(item);
-      else if (item.type === "dir") dirs.push({ name: item.name, path: `${path}${item.name}/` });
-    }
-    return { files, dirs: [] }; // 先只做一级分类，避免多层请求失败，稳到极致
-  } catch (e) {
-    console.error("Fetch error:", e);
-    return { files: [], dirs: [] };
-  }
-}
-
-async function loadAll() {
+async function load() {
   const box = document.getElementById("fileBox");
-  box.innerHTML = "";
+  try {
+    const r = await fetch(api);
+    const items = await r.json();
 
-  // 1. 先加载根目录
-  const root = await fetchFiles("");
-  let hasContent = false;
-
-  // 2. 渲染根目录文件（无分类）
-  if (root.files.length > 0) {
-    box.appendChild(createTable(root.files, "无分类"));
-    hasContent = true;
-  }
-
-  // 3. 加载一级文件夹（稳到极致，先不做多级，避免请求失败）
-  for (const dir of root.dirs) {
-    const dirData = await fetchFiles(dir.path);
-    if (dirData.files.length > 0) {
-      box.appendChild(createTable(dirData.files, dir.name));
-      hasContent = true;
+    if (!Array.isArray(items)) {
+      box.innerHTML = "<div class=empty>暂无文件</div>";
+      return;
     }
-  }
 
-  // 4. 空状态处理
-  if (!hasContent) {
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.textContent = "仓库暂无文件";
-    box.appendChild(empty);
+    let rootFiles = [];
+    let folders = [];
+
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (it.name === "README.md") continue;
+      if (it.type === "file") rootFiles.push(it);
+      if (it.type === "dir") folders.push(it);
+    }
+
+    let html = "";
+
+    // 根目录 = 无分类
+    if (rootFiles.length > 0) {
+      html += "<div class=category-title>无分类</div><table>";
+      html += "<thead><tr><th>文件名</th><th width=100>操作</th></tr></thead><tbody>";
+      for (let i = 0; i < rootFiles.length; i++) {
+        const f = rootFiles[i];
+        html += "<tr><td>"+f.name+"</td><td><a class=download href='"+f.download_url+"' target=_blank>下载</a></td></tr>";
+      }
+      html += "</tbody></table>";
+    }
+
+    // 文件夹 = 分类
+    for (let i = 0; i < folders.length; i++) {
+      const fd = folders[i];
+      const sub = await fetch(api + fd.name + "/");
+      const files = await sub.json();
+
+      if (!Array.isArray(files) || files.length === 0) continue;
+
+      html += "<div class=category-title>"+fd.name+"</div><table>";
+      html += "<thead><tr><th>文件名</th><th width=100>操作</th></tr></thead><tbody>";
+      for (let j = 0; j < files.length; j++) {
+        const f = files[j];
+        if (f.type === "file" && f.name !== "README.md") {
+          html += "<tr><td>"+f.name+"</td><td><a class=download href='"+f.download_url+"' target=_blank>下载</a></td></tr>";
+        }
+      }
+      html += "</tbody></table>";
+    }
+
+    if (html === "") {
+      box.innerHTML = "<div class=empty>仓库暂无文件</div>";
+    } else {
+      box.innerHTML = html;
+    }
+
+  } catch (e) {
+    box.innerHTML = "<div class=empty>加载失败</div>";
   }
 }
 
-// 启动加载，加兜底
-loadAll().catch(err => {
-  console.error("Load error:", err);
-  document.getElementById("fileBox").innerHTML = "<div class='empty'>加载失败，请刷新重试</div>";
-});
+load();
 </script>
 </body>
 </html>
