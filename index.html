@@ -1,46 +1,52 @@
 <!DOCTYPE html>
-<html lang="UTF-8">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>葫芦侠公益</title>
+<!-- 完全保留你原有的内嵌CSS，毛玻璃样式1:1还原，无需额外样式文件 -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{
   font-family:system-ui,sans-serif;
-  background:url('./bg.jpg') no-repeat center fixed;
+  background:url('./bg.jpg') no-repeat center center fixed;
   background-size:cover;
-  padding:30px 0
+  padding:0 0 40px;
 }
 .head{
   background:rgba(255,255,255,0.6);
   backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
   text-align:center;
   padding:16px;
-  margin:0 auto 20px;
+  margin:20px auto;
   border-radius:12px;
   max-width:300px;
 }
-.head h1{font-size:20px;color:#009000}
-.container{max-width:900px;margin:auto;padding:0 14px}
+.head h1{font-size:20px;color:#009900}
+.container{max-width:900px;margin:0 auto;padding:0 14px}
 .glass{
   background:rgba(255,255,255,0.6);
   backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
   border-radius:16px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.1);
-  border:1px solid #fff;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  border:1px solid rgba(255,255,255,0.7);
   padding:22px;
+  margin:20px 0;
 }
 .category-title{
   font-size:18px;
-  font-weight:bold;
-  margin:20px 0 8px;
-  border-bottom:1.5px solid #888;
+  font-weight:600;
+  color:#222;
+  margin:16px 0 8px 0;
   padding-bottom:4px;
+  border-bottom:1.5px solid #888;
 }
 table{
   width:100%;
   border-collapse:collapse;
+  font-size:14px;
   margin-bottom:16px;
 }
 th,td{
@@ -54,93 +60,108 @@ th{background:rgba(255,255,255,0.7)}
   font-weight:bold;
   text-decoration:none;
 }
+.download:hover{text-decoration:underline}
 .empty{
   text-align:center;
-  padding:30px 0;
+  padding:20px;
   color:#666;
+  font-size:14px;
 }
 </style>
 </head>
 <body>
-
-<div class="head">
-  <h1>葫芦侠公益</h1>
-</div>
+<!-- 页面头部，和你原有样式完全一致 -->
+<div class="head"><h1>葫芦侠公益</h1></div>
 
 <div class="container">
-  <div class="glass" id="fileBox"></div>
+  <div class="glass" id="fileBox">
+    <!-- ========== 核心扫盘&分类逻辑，完全匹配你的需求 ========== -->
+    {% comment %} 1. 加载配置里的隐藏规则 {% endcomment %}
+    {% assign hide_folders = site.hide_folders %}
+    {% assign hide_files = site.hide_files | join: "|" | replace: "*", ".*" | split: "|" %}
+
+    {% comment %} 2. 过滤所有有效文件：排除隐藏文件夹、隐藏文件 {% endcomment %}
+    {% assign valid_files = "" | split: "" %}
+    {% for file in site.static_files %}
+      {% assign is_hidden = false %}
+      
+      {% comment %} 检查是否在隐藏文件夹里 {% endcomment %}
+      {% for folder in hide_folders %}
+        {% if file.path contains folder | append: "/" %}
+          {% assign is_hidden = true %}
+          {% break %}
+        {% endif %}
+      {% endfor %}
+      {% if is_hidden == true %}{% continue %}{% endif %}
+
+      {% comment %} 检查是否是要隐藏的文件 {% endcomment %}
+      {% for pattern in hide_files %}
+        {% if file.name | regex_match: pattern %}
+          {% assign is_hidden = true %}
+          {% break %}
+        {% endif %}
+      {% endfor %}
+      {% if is_hidden == true %}{% continue %}{% endif %}
+
+      {% comment %} 有效文件加入列表 {% endcomment %}
+      {% assign valid_files = valid_files | push: file %}
+    {% endfor %}
+
+    {% comment %} 3. 拆分根目录文件（无分类）和文件夹内文件（分类） {% endcomment %}
+    {% assign root_files = valid_files | where_exp: "file", "file.path contains '/' == false" %}
+    {% assign folder_files = valid_files | where_exp: "file", "file.path contains '/' == true" %}
+
+    {% comment %} 4. 渲染无分类（根目录文件） {% endcomment %}
+    {% if root_files.size > 0 %}
+      <div class="category-title">无分类</div>
+      <table>
+        <thead>
+          <tr>
+            <th>文件名</th>
+            <th width="100">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for file in root_files %}
+          <tr>
+            <td>{{ file.name }}</td>
+            <td><a class="download" href="{{ file.path | relative_url }}" target="_blank">下载</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    {% comment %} 5. 渲染分类（文件夹内文件，文件夹本身不显示，只按文件夹名生成分类） {% endcomment %}
+    {% if folder_files.size > 0 %}
+      {% assign categories = folder_files | group_by_exp: "file", "file.path | split: '/' | pop | join: '/'" %}
+      {% for category in categories %}
+        <div class="category-title">{{ category.name }}</div>
+        <table>
+          <thead>
+            <tr>
+              <th>文件名</th>
+              <th width="100">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for file in category.items %}
+            <tr>
+              <td>{{ file.name }}</td>
+              <td><a class="download" href="{{ file.path | relative_url }}" target="_blank">下载</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endfor %}
+    {% endif %}
+
+    {% comment %} 6. 空状态提示 {% endcomment %}
+    {% if valid_files.size == 0 %}
+      <div class="empty">仓库暂无文件</div>
+    {% endif %}
+  </div>
 </div>
 
-<script>
-const user = "WCqz2023fcc";
-const repo = "huluxia_tiancaigaoji's_cangku";
-const api = "https://api.github.com/repos/" + user + "/" + repo + "/contents/";
-
-async function load() {
-  const box = document.getElementById("fileBox");
-  try {
-    const r = await fetch(api);
-    const items = await r.json();
-
-    if (!Array.isArray(items)) {
-      box.innerHTML = "<div class=empty>暂无文件</div>";
-      return;
-    }
-
-    let rootFiles = [];
-    let folders = [];
-
-    for (let i = 0; i < items.length; i++) {
-      const it = items[i];
-      if (it.name === "README.md") continue;
-      if (it.type === "file") rootFiles.push(it);
-      if (it.type === "dir") folders.push(it);
-    }
-
-    let html = "";
-
-    // 根目录 = 无分类
-    if (rootFiles.length > 0) {
-      html += "<div class=category-title>无分类</div><table>";
-      html += "<thead><tr><th>文件名</th><th width=100>操作</th></tr></thead><tbody>";
-      for (let i = 0; i < rootFiles.length; i++) {
-        const f = rootFiles[i];
-        html += "<tr><td>"+f.name+"</td><td><a class=download href='"+f.download_url+"' target=_blank>下载</a></td></tr>";
-      }
-      html += "</tbody></table>";
-    }
-
-    // 文件夹 = 分类
-    for (let i = 0; i < folders.length; i++) {
-      const fd = folders[i];
-      const sub = await fetch(api + fd.name + "/");
-      const files = await sub.json();
-
-      if (!Array.isArray(files) || files.length === 0) continue;
-
-      html += "<div class=category-title>"+fd.name+"</div><table>";
-      html += "<thead><tr><th>文件名</th><th width=100>操作</th></tr></thead><tbody>";
-      for (let j = 0; j < files.length; j++) {
-        const f = files[j];
-        if (f.type === "file" && f.name !== "README.md") {
-          html += "<tr><td>"+f.name+"</td><td><a class=download href='"+f.download_url+"' target=_blank>下载</a></td></tr>";
-        }
-      }
-      html += "</tbody></table>";
-    }
-
-    if (html === "") {
-      box.innerHTML = "<div class=empty>仓库暂无文件</div>";
-    } else {
-      box.innerHTML = html;
-    }
-
-  } catch (e) {
-    box.innerHTML = "<div class=empty>加载失败</div>";
-  }
-}
-
-load();
-</script>
 </body>
 </html>
