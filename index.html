@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>葫芦侠公益</title>
-<!-- 完全保留你原有的内嵌CSS，毛玻璃样式1:1还原，无需额外样式文件 -->
+<!-- 完全保留你原有的毛玻璃内嵌CSS，1:1还原，无需额外文件 -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{
@@ -70,34 +70,137 @@ th{background:rgba(255,255,255,0.7)}
 </style>
 </head>
 <body>
-<!-- 页面头部，和你原有样式完全一致 -->
 <div class="head"><h1>葫芦侠公益</h1></div>
 
 <div class="container">
   <div class="glass" id="fileBox">
-    <!-- ========== 核心扫盘&分类逻辑，完全匹配你的需求 ========== -->
-    {% comment %} 1. 加载配置里的隐藏规则 {% endcomment %}
-    {% assign hide_folders = site.hide_folders %}
-    {% assign hide_files = site.hide_files | join: "|" | replace: "*", ".*" | split: "|" %}
+    <div class="empty">正在加载文件列表...</div>
+  </div>
+</div>
 
-    {% comment %} 2. 过滤所有有效文件：排除隐藏文件夹、隐藏文件 {% endcomment %}
-    {% assign valid_files = "" | split: "" %}
-    {% for file in site.static_files %}
-      {% assign is_hidden = false %}
-      
-      {% comment %} 检查是否在隐藏文件夹里 {% endcomment %}
-      {% for folder in hide_folders %}
-        {% if file.path contains folder | append: "/" %}
-          {% assign is_hidden = true %}
-          {% break %}
-        {% endif %}
-      {% endfor %}
-      {% if is_hidden == true %}{% continue %}{% endif %}
+<script>
+// ========== 自定义配置区：你可以在这里修改隐藏规则 ==========
+// 1. 要隐藏的文件夹，填文件夹名，用英文逗号分隔
+const HIDE_FOLDERS = ["private", "备份", "测试"];
+// 2. 要隐藏的文件/后缀，填文件名/通配符后缀，用英文逗号分隔
+const HIDE_FILES = ["README.md", "*.log", "*.txt", ".gitignore"];
+// ============================================================
 
-      {% comment %} 检查是否是要隐藏的文件 {% endcomment %}
-      {% for pattern in hide_files %}
-        {% if file.name | regex_match: pattern %}
-          {% assign is_hidden = true %}
+// 生成表格DOM
+function createTable(files, title) {
+  const container = document.createElement("div");
+  const titleEl = document.createElement("div");
+  titleEl.className = "category-title";
+  titleEl.textContent = title;
+  container.appendChild(titleEl);
+
+  const table = document.createElement("table");
+  const thead = document.createElement("thead");
+  const trHead = document.createElement("tr");
+  const thName = document.createElement("th");
+  thName.textContent = "文件名";
+  const thOp = document.createElement("th");
+  thOp.textContent = "操作";
+  thOp.style.width = "100px";
+  trHead.appendChild(thName);
+  trHead.appendChild(thOp);
+  thead.appendChild(trHead);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  for (const file of files) {
+    const tr = document.createElement("tr");
+    const tdName = document.createElement("td");
+    tdName.textContent = file.name;
+    const tdOp = document.createElement("td");
+    const a = document.createElement("a");
+    a.className = "download";
+    a.href = file.downloadUrl;
+    a.target = "_blank";
+    a.textContent = "下载";
+    tdOp.appendChild(a);
+    tr.appendChild(tdName);
+    tr.appendChild(tdOp);
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  container.appendChild(table);
+  return container;
+}
+
+// 通配符匹配函数
+function wildcardMatch(str, pattern) {
+  const regex = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$");
+  return regex.test(str);
+}
+
+// 核心加载逻辑
+async function loadFiles() {
+  const box = document.getElementById("fileBox");
+  box.innerHTML = "<div class='empty'>正在加载文件列表...</div>";
+
+  try {
+    // 读取本地同步好的文件列表，完全不用跨仓库请求API
+    const res = await fetch("./file_list.json");
+    if (!res.ok) throw new Error("文件列表加载失败");
+    const allFiles = await res.json();
+
+    // 1. 过滤隐藏的文件夹和文件
+    const validFiles = allFiles.filter(file => {
+      // 检查是否在隐藏文件夹里
+      for (const folder of HIDE_FOLDERS) {
+        if (file.path.includes(`${folder}/`)) return false;
+      }
+      // 检查是否是要隐藏的文件
+      for (const pattern of HIDE_FILES) {
+        if (wildcardMatch(file.name, pattern)) return false;
+      }
+      return true;
+    });
+
+    // 2. 拆分无分类（根目录文件）和分类（文件夹内文件）
+    const rootFiles = validFiles.filter(file => file.category === "");
+    const categoryFiles = validFiles.filter(file => file.category !== "");
+
+    // 3. 按分类分组
+    const categories = {};
+    for (const file of categoryFiles) {
+      if (!categories[file.category]) categories[file.category] = [];
+      categories[file.category].push(file);
+    }
+
+    // 4. 渲染页面
+    box.innerHTML = "";
+    let hasContent = false;
+
+    // 渲染无分类
+    if (rootFiles.length > 0) {
+      box.appendChild(createTable(rootFiles, "无分类"));
+      hasContent = true;
+    }
+
+    // 渲染分类（文件夹本身不显示，只按文件夹名生成分类）
+    for (const [catName, files] of Object.entries(categories)) {
+      box.appendChild(createTable(files, catName));
+      hasContent = true;
+    }
+
+    // 空状态
+    if (!hasContent) {
+      box.innerHTML = "<div class='empty'>仓库暂无文件</div>";
+    }
+
+  } catch (e) {
+    console.error(e);
+    box.innerHTML = "<div class='empty'>加载失败，请刷新重试</div>";
+  }
+}
+
+// 启动加载
+loadFiles();
+</script>
+</body>
+</html>
           {% break %}
         {% endif %}
       {% endfor %}
