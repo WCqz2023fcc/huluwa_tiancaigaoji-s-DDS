@@ -48,24 +48,17 @@ table{
   font-size:14px;
   margin-bottom:16px;
 }
-th{
-  background:rgba(255,255,255,0.7);
-  padding:10px 12px;
-  text-align:left;
-  font-weight:600;
+th,td{
   border:1.5px solid #888;
-}
-td{
   padding:10px 12px;
   background:rgba(255,255,255,0.5);
-  border:1.5px solid #888;
 }
+th{background:rgba(255,255,255,0.7)}
 .download{
   color:#0066cc;
-  text-decoration:none;
   font-weight:bold;
+  text-decoration:none;
 }
-.download:hover{text-decoration:underline}
 .empty{
   text-align:center;
   padding:20px;
@@ -81,105 +74,20 @@ td{
 <script>
 const USER = "WCqz2023fcc";
 const REPO = "huluxia_tiancaigaoji's_cangku";
-const API = "https://api.github.com/repos/" + USER + "/" + REPO + "/contents/";
+const API_BASE = `https://api.github.com/repos/${USER}/${REPO}/contents/`;
 
-// 核心修复：直接读取根目录，再递归子文件夹，彻底避免漏识别
-async function loadFiles() {
-  const box = document.getElementById("fileBox");
-  box.innerHTML = "";
-
-  try {
-    // 1. 先读根目录，单独收集根文件和文件夹
-    const rootRes = await fetch(API);
-    const rootItems = await rootRes.json();
-    if (!Array.isArray(rootItems)) {
-      box.innerHTML = "<div class='empty'>加载失败</div>";
-      return;
-    }
-
-    // 过滤README.md，分离根文件和文件夹
-    const rootFiles = [];
-    const folders = [];
-    for (const item of rootItems) {
-      if (item.name === "README.md") continue;
-      if (item.type === "file") rootFiles.push(item);
-      else if (item.type === "dir") folders.push(item);
-    }
-
-    // 2. 渲染根目录文件：无分类
-    if (rootFiles.length > 0) {
-      const title = document.createElement("div");
-      title.className = "category-title";
-      title.textContent = "无分类";
-      box.appendChild(title);
-      box.appendChild(createFileTable(rootFiles));
-    }
-
-    // 3. 递归读取每个文件夹，按分类渲染
-    for (const folder of folders) {
-      const folderRes = await fetch(API + folder.name + "/");
-      const folderItems = await folderRes.json();
-      if (!Array.isArray(folderItems)) continue;
-
-      // 过滤文件夹内的README.md，只取文件
-      const folderFiles = folderItems.filter(item => 
-        item.type === "file" && item.name !== "README.md"
-      );
-
-      if (folderFiles.length > 0) {
-        const title = document.createElement("div");
-        title.className = "category-title";
-        title.textContent = folder.name;
-        box.appendChild(title);
-        box.appendChild(createFileTable(folderFiles));
-      }
-
-      // 递归处理子文件夹（支持多级分类）
-      const subFolders = folderItems.filter(item => item.type === "dir");
-      for (const subFolder of subFolders) {
-        await renderSubFolder(folder.name + "/" + subFolder.name, subFolder.name, box);
-      }
-    }
-
-    // 4. 无文件提示
-    if (rootFiles.length === 0 && folders.length === 0) {
-      box.innerHTML = "<div class='empty'>仓库暂无文件</div>";
-    }
-  } catch (e) {
-    box.innerHTML = "<div class='empty'>加载失败</div>";
-    console.error(e);
-  }
-}
-
-// 递归渲染子文件夹
-async function renderSubFolder(path, displayName, container) {
-  const res = await fetch(API + path + "/");
-  const items = await res.json();
-  if (!Array.isArray(items)) return;
-
-  const files = items.filter(item => item.type === "file" && item.name !== "README.md");
-  if (files.length > 0) {
-    const title = document.createElement("div");
-    title.className = "category-title";
-    title.textContent = displayName;
-    container.appendChild(title);
-    container.appendChild(createFileTable(files));
+// 极简DOM生成，零模板字符串
+function createTable(files, title) {
+  const container = document.createElement("div");
+  if (title) {
+    const titleEl = document.createElement("div");
+    titleEl.className = "category-title";
+    titleEl.textContent = title;
+    container.appendChild(titleEl);
   }
 
-  // 递归子文件夹
-  const subFolders = items.filter(item => item.type === "dir");
-  for (const subFolder of subFolders) {
-    await renderSubFolder(path + "/" + subFolder.name, displayName + "/" + subFolder.name, container);
-  }
-}
-
-// 通用文件表格生成
-function createFileTable(files) {
   const table = document.createElement("table");
   const thead = document.createElement("thead");
-  const tbody = document.createElement("tbody");
-
-  // 表头
   const trHead = document.createElement("tr");
   const thName = document.createElement("th");
   thName.textContent = "文件名";
@@ -191,7 +99,7 @@ function createFileTable(files) {
   thead.appendChild(trHead);
   table.appendChild(thead);
 
-  // 表体
+  const tbody = document.createElement("tbody");
   for (const file of files) {
     const tr = document.createElement("tr");
     const tdName = document.createElement("td");
@@ -208,10 +116,77 @@ function createFileTable(files) {
     tbody.appendChild(tr);
   }
   table.appendChild(tbody);
-  return table;
+  container.appendChild(table);
+  return container;
 }
 
-loadFiles();
+// 核心：极简递归，避免多层请求失败
+async function fetchFiles(path = "") {
+  try {
+    const res = await fetch(`${API_BASE}${path}`);
+    if (!res.ok) return { files: [], dirs: [] };
+    const data = await res.json();
+    if (!Array.isArray(data)) return { files: [], dirs: [] };
+
+    const files = [];
+    const dirs = [];
+    for (const item of data) {
+      if (item.name === "README.md") continue;
+      if (item.type === "file") files.push(item);
+      else if (item.type === "dir") dirs.push({ name: item.name, path: `${path}${item.name}/` });
+    }
+    return { files, dirs };
+  } catch (e) {
+    console.error("Fetch error:", e);
+    return { files: [], dirs: [] };
+  }
+}
+
+async function loadAll() {
+  const box = document.getElementById("fileBox");
+  box.innerHTML = "";
+
+  // 1. 先加载根目录
+  const root = await fetchFiles("");
+  let hasContent = false;
+
+  // 2. 渲染根目录文件（无分类）
+  if (root.files.length > 0) {
+    box.appendChild(createTable(root.files, "无分类"));
+    hasContent = true;
+  }
+
+  // 3. 递归加载所有文件夹
+  for (const dir of root.dirs) {
+    const dirData = await fetchFiles(dir.path);
+    if (dirData.files.length > 0) {
+      box.appendChild(createTable(dirData.files, dir.name));
+      hasContent = true;
+    }
+    // 递归子文件夹
+    for (const subDir of dirData.dirs) {
+      const subData = await fetchFiles(subDir.path);
+      if (subData.files.length > 0) {
+        box.appendChild(createTable(subData.files, `${dir.name}/${subDir.name}`));
+        hasContent = true;
+      }
+    }
+  }
+
+  // 4. 空状态/加载失败处理
+  if (!hasContent) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "仓库暂无文件";
+    box.appendChild(empty);
+  }
+}
+
+// 启动加载，加兜底重试
+loadAll().catch(err => {
+  console.error("Load error:", err);
+  document.getElementById("fileBox").innerHTML = "<div class='empty'>加载失败，请刷新重试</div>";
+});
 </script>
 </body>
 </html>
