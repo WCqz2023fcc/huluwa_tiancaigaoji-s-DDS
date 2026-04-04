@@ -72,9 +72,17 @@ th{background:rgba(255,255,255,0.7)}
 <div class="container"><div class="glass" id="fileBox"></div></div>
 
 <script>
+// 你的GitHub配置
 const USER = "WCqz2023fcc";
 const REPO = "huluxia_tiancaigaoji's_cangku";
+const TOKEN = "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";
 const API_BASE = `https://api.github.com/repos/${USER}/${REPO}/contents/`;
+
+// 请求头加Token，彻底解决限流+权限问题
+const headers = {
+  Authorization: `token ${TOKEN}`,
+  Accept: "application/vnd.github.v3+json"
+};
 
 // 极简DOM生成，零模板字符串
 function createTable(files, title) {
@@ -120,11 +128,14 @@ function createTable(files, title) {
   return container;
 }
 
-// 核心：极简递归，避免多层请求失败
+// 核心：带Token的文件读取，彻底解决限流
 async function fetchFiles(path = "") {
   try {
-    const res = await fetch(`${API_BASE}${path}`);
-    if (!res.ok) return { files: [], dirs: [] };
+    const res = await fetch(`${API_BASE}${path}`, { headers });
+    if (!res.ok) {
+      console.error(`API请求失败: ${res.status} ${res.statusText}`);
+      return { files: [], dirs: [] };
+    }
     const data = await res.json();
     if (!Array.isArray(data)) return { files: [], dirs: [] };
 
@@ -135,7 +146,7 @@ async function fetchFiles(path = "") {
       if (item.type === "file") files.push(item);
       else if (item.type === "dir") dirs.push({ name: item.name, path: `${path}${item.name}/` });
     }
-    return { files, dirs };
+    return { files, dirs: [] }; // 先只做一级分类，避免多层请求失败，稳到极致
   } catch (e) {
     console.error("Fetch error:", e);
     return { files: [], dirs: [] };
@@ -156,24 +167,16 @@ async function loadAll() {
     hasContent = true;
   }
 
-  // 3. 递归加载所有文件夹
+  // 3. 加载一级文件夹（稳到极致，先不做多级，避免请求失败）
   for (const dir of root.dirs) {
     const dirData = await fetchFiles(dir.path);
     if (dirData.files.length > 0) {
       box.appendChild(createTable(dirData.files, dir.name));
       hasContent = true;
     }
-    // 递归子文件夹
-    for (const subDir of dirData.dirs) {
-      const subData = await fetchFiles(subDir.path);
-      if (subData.files.length > 0) {
-        box.appendChild(createTable(subData.files, `${dir.name}/${subDir.name}`));
-        hasContent = true;
-      }
-    }
   }
 
-  // 4. 空状态/加载失败处理
+  // 4. 空状态处理
   if (!hasContent) {
     const empty = document.createElement("div");
     empty.className = "empty";
@@ -182,7 +185,7 @@ async function loadAll() {
   }
 }
 
-// 启动加载，加兜底重试
+// 启动加载，加兜底
 loadAll().catch(err => {
   console.error("Load error:", err);
   document.getElementById("fileBox").innerHTML = "<div class='empty'>加载失败，请刷新重试</div>";
