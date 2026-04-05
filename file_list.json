@@ -1,5 +1,50 @@
 [
-{"name":"README.md","path":"README.md","category":"","downloadUrl":"https://raw.githubusercontent.com/WCqz2023fcc/huluxia_tiancaigaoji-s_cangku/main/README.md"},
-{"name":"小米型号.exe","path":"小米型号.exe","category":"","downloadUrl":"https://raw.githubusercontent.com/WCqz2023fcc/huluxia_tiancaigaoji-s_cangku/main/小米型号.exe"},
-{"name":"搞机助手.exe","path":"搞机助手.exe","category":"","downloadUrl":"https://raw.githubusercontent.com/WCqz2023fcc/huluxia_tiancaigaoji-s_cangku/main/搞机助手.exe"}
+  {
+    "name": "README.md",
+    "path": "README.md",
+    "category": "",
+    "downloadUrl": "https://raw.githubusercontent.com/WCqz2023fcc/huluxia_tiancaigaoji-s_cangku/main/README.md"
+  },
+  {
+    "name": "小米型号.exe",
+    "path": "小米型号.exe",
+    "category": "",
+    "downloadUrl": "https://raw.githubusercontent.com/WCqz2023fcc/huluxia_tiancaigaoji-s_cangku/main/小米型号.exe"
+  },
+  {
+    "name": "搞机助手.exe",
+    "path": "搞机助手.exe",
+    "category": "",
+    "downloadUrl": "https://raw.githubusercontent.com/WCqz2023fcc/huluxia_tiancaigaoji-s_cangku/main/搞机助手.exe"
+  },
+  {
+    "name": ".gitkeep",
+    "path": "模块/.gitkeep",
+    "category": "模块",
+    "downloadUrl": "https://raw.githubusercontent.com/WCqz2023fcc/huluxia_tiancaigaoji-s_cangku/main/模块/.gitkeep"
+  },
+  {
+    "name": "BL隐藏（面具刷入）.zip",
+    "path": "模块/BL隐藏（面具刷入）.zip",
+    "category": "模块",
+    "downloadUrl": "https://raw.githubusercontent.com/WCqz2023fcc/huluxia_tiancaigaoji-s_cangku/main/模块/BL隐藏（面具刷入）.zip"
+  },
+  {
+    "name": "Shamiko-v0.7.3(174)delta（德尔塔）面具不要刷入.zip",
+    "path": "模块/Shamiko-v0.7.3(174)delta（德尔塔）面具不要刷入.zip",
+    "category": "模块",
+    "downloadUrl": "https://raw.githubusercontent.com/WCqz2023fcc/huluxia_tiancaigaoji-s_cangku/main/模块/Shamiko-v0.7.3(174)delta（德尔塔）面具不要刷入.zip"
+  },
+  {
+    "name": "隐藏init被发现.zip",
+    "path": "模块/隐藏init被发现.zip",
+    "category": "模块",
+    "downloadUrl": "https://raw.githubusercontent.com/WCqz2023fcc/huluxia_tiancaigaoji-s_cangku/main/模块/隐藏init被发现.zip"
+  },
+  {
+    "name": "隐藏selinux_2.zip",
+    "path": "模块/隐藏selinux_2.zip",
+    "category": "模块",
+    "downloadUrl": "https://raw.githubusercontent.com/WCqz2023fcc/huluxia_tiancaigaoji-s_cangku/main/模块/隐藏selinux_2.zip"
+  }
 ]
